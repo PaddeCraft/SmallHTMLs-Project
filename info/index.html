@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Small HTMLs</title>
+  <link rel="icon" href="/sh.svg">
+</head>
+<body style="--mainhight: 10em;--textheight: 5em;">
+  <style>
+    body{
+        background-color: #222222;
+        color: #ffffff;
+      --header-color: #666666;
+    }
+    #header{
+      display: inline-block;
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      width: 100%;
+      height: var(--mainhight);
+      background:  var(--header-color);
+    }
+    #bottom{
+      width: 100%;
+      display: inline-block;
+      background: var(--header-color);
+      position: fixed; 
+      left: 0px;
+      bottom:0px;
+    }
+    #body{
+        text-align: center;
+    }
+
+.headerentry{
+   display: inline-block;
+   
+}
+.logo{
+   height: var(--mainhight);
+   z-index: 1;
+}
+.logoImg{
+   height:100%;
+}
+#impressumLink{
+   color: white;
+}
+      .linkStyle{
+          color: #ffffff;
+      }
+      #body{
+          position: absolute;
+          left:0px;
+          top: var(--mainhight);
+          width: 100%;
+          height: fit-content;
+      }
+    a{
+      color: #ffffff
+
+    }
+  </style>
+  <div id="header">
+<div class="logo"><img class="logoImg" src="/sh.svg"/> </div>
+  <div style="text-align: center;z-index:2;"><div style="position:absolute;left:0px;width:100%;top:var(--textheight);">
+      <a href="/" class="linkStyle" >Home</a> &nbsp;&nbsp;&nbsp;
+      <a href="/open_html/" class="linkStyle">OpenHTML</a> &nbsp;&nbsp;&nbsp;
+  </div></div>
+  </div>
+  <div id="body">
+        This project is part of the Freeversuals Project, but mostly organized by the main developer (nprogramDev). <br>
+        The only purpose of this project is to organize Small Webtools in one place, which doesn't ever change the URL. 
+        <br>
+        <br>
+      <a href="https://github.com/smallhtmls">Small HTMLs Github</a>
+      <a href="https://github.com/Freeversuals">Freeversuals Github</a>
+      <a href="https://github.com/NprogramDev">NprogramDevs Github</a>
+  </div>
+  <div id="bottom">
+<div>
+  <!--<a href="/impressum/index.html" id="impressumLink">Impressum</a>-->&nbsp;&nbsp;<a href="/info/" style="font-weight: bold;">Info</a>
+</div>
+  </div>
+</body>
+
+</html>

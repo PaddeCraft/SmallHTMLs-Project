@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <title>WINDOWS BROWSER</title>
+</head>
+<body id="everybody" style="width:100%;height:100%;background-color: #2a2a2a;">
+<style>
+    .unselectable {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    #lableaddPWindow {
+        background-color: #000000;
+        color: #ffffff;
+        border: none;
+        text-align: center;
+    }
+
+    #overlay {
+        position: fixed; /* Sit on top of the page content */
+        width: 100%; /* Full width (cover the whole page) */
+        height: 100%; /* Full height (cover the whole page) */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0); /* Black background with opacity */
+        z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+        cursor: grabbing; /* Add a pointer on hover */
+    }
+    #settings{
+      background-color: #000000;
+      color: #ffffff;
+      border: none;
+      text-align: center;
+    }
+</style>
+<div style="background-color:#000000;top:0px;position:absolute;width:90%">
+    <a href="/open_html/" style="color: white; font-style:normal; text-decoration: none;" class="unselectable">&nbsp;&nbsp;&nbsp;←&nbsp;&nbsp;&nbsp;</a>
+    <label for="addPWindow" id="lableaddPWindow" class="unselectable">&nbsp;&nbsp;&nbsp;+&nbsp;&nbsp;&nbsp;</label>
+    <input id="addPWindow" type="file" style="position: fixed; top: -100em">
+    <span id="settings" class="unselectable" onclick="settings = new Settings();">
+      &nbsp;&nbsp;&nbsp;&#9881;&nbsp;&nbsp;&nbsp;
+    </span>
+    <span id="tabs"></span>
+</div>
+<div id="outerlay">
+</div>
+
+<script type="text/javascript">
+    let id = 0;
+    let settings = null;
+    class PWindow {
+        constructor(name, file, pos, size, color, barColor) {
+            this.name = name;
+            this.file = file;
+            this.isMaxMinimized = false;
+            this.pos = pos;
+            this.size = size;
+            this.barColor = barColor;
+            this.dragRelativCursorXPos = 0;
+            this.id = "PWnd" + id.toString();
+            id++;
+
+            this.this = document.createElement("div");
+            this.this.id = this.id
+            this.this.style.backgroundColor = color;
+            this.this.style.width = this.size.x.toString() + "px";
+            this.this.style.height = this.size.y.toString() + "px";
+            this.this.style.position = "absolute";
+            this.this.style.left = this.pos.x.toString() + "px";
+            this.this.style.top = this.pos.y.toString() + "px";
+            this.this.innerHTML = "";
+
+            this.topsize = document.createElement("span");
+            this.topsize.style.width = this.size.x.toString() + "px";
+            this.topsize.style.height = "2px"
+            this.topsize.id = this.id + "_topresize";
+            this.topsize.style.cursor = "n-resize"
+            this.topsize.style.display = "flex";
+            this.topsize.setAttribute("onmousedown", "resize_up('" + this.id + "')");
+            this.topsize.style.backgroundColor = this.barColor;
+
+            this.bottomsize = document.createElement("span");
+            this.bottomsize.style.width = this.size.x.toString() + "px";
+            this.bottomsize.id = this.id + "_bottomresize";
+            this.bottomsize.style.height = "2px"
+            this.bottomsize.style.top = (this.size.y - 2).toString() + "px";
+            this.bottomsize.style.cursor = "s-resize"
+            this.bottomsize.style.display = "flex";
+            this.bottomsize.setAttribute("onmousedown", "resize_down('" + this.id + "')");
+            this.bottomsize.style.backgroundColor = this.barColor;
+            this.bottomsize.style.position = "absolute";
+
+            this.leftsize = document.createElement("span");
+            this.leftsize.style.width = "2px";
+            this.leftsize.id = this.id + "_leftresize";
+            this.leftsize.style.height = this.size.y.toString() + "px";
+            this.leftsize.style.cursor = "w-resize"
+            this.leftsize.style.display = "flex";
+            this.leftsize.setAttribute("onmousedown", "resize_left('" + this.id + "')");
+            this.leftsize.style.backgroundColor = this.barColor;
+            this.leftsize.style.position = "absolute";
+
+            this.rightsize = document.createElement("span");
+            this.rightsize.style.width = "2px";
+            this.rightsize.id = this.id + "_rightresize";
+            this.rightsize.style.height = this.size.y.toString() + "px";
+            this.rightsize.style.left = (this.size.x - 2).toString() + "px";
+            this.rightsize.style.cursor = "e-resize"
+            this.rightsize.style.display = "flex";
+            this.rightsize.setAttribute("onmousedown", "resize_right('" + this.id + "')");
+            this.rightsize.style.backgroundColor = this.barColor;
+            this.rightsize.style.position = "absolute";
+
+            this.iframe = document.createElement("iframe");
+            this.iframe.id = this.id + "_iframe";
+            this.iframe.style.width = (this.size.x - 4).toString() + "px";
+            this.iframe.style.height = (this.size.y - 24).toString() + "px";
+            this.iframe.style.display = "flex";
+            this.iframe.src = URL.createObjectURL(this.file);
+
+            this.selbar = new SelectBar(this.id, this.name, this.size, this.barColor);
+            //////////////////////////////////////////////////////////////////
+            this.this.appendChild(this.topsize);
+            this.this.appendChild(this.leftsize);
+            this.this.appendChild(this.rightsize);
+            this.this.appendChild(this.bottomsize);
+            this.this.appendChild(this.selbar.this);
+            this.this.appendChild(this.iframe);
+        }
+    }
+
+    class SelectBar {
+        constructor(id, title, size, barColor) {
+            this.id = id;
+            this.title = title;
+            this.size = size;
+            this.barColor = barColor;
+            this.this = document.createElement("div");
+            this.this.setAttribute("class", "unselectable");
+            this.this.id = this.id + "_selbar";
+            this.this.style.backgroundColor = this.barColor;
+            this.this.style.color = "#ffffff";
+            this.this.style.width = this.size.x.toString() + "px";
+            this.this.style.height = "20px";
+            this.this.setAttribute("onmousedown", "selbar_mousedown('" + this.id + "')")
+            this.this.style.cursor = "grab";
+
+            this.titleobject = document.createElement("span");
+            this.titleobject.id = this.id + "_selbar_name";
+            this.titleobject.style.float = "left";
+            this.titleobject.innerHTML = "&nbsp;&nbsp;&nbsp;" + this.title;
+
+            this.minimisebutton = document.createElement("span");
+            this.minimisebutton.id = this.id + "_selbar_minimise";
+            this.minimisebutton.style.float = "right";
+            this.minimisebutton.style.backgroundColor = "#505050";
+            this.minimisebutton.style.cursor = "default";
+            this.minimisebutton.setAttribute("onmousedown", "minimise('" + this.id + "')");
+            this.minimisebutton.innerHTML = "&nbsp;&nbsp;&nbsp;_&nbsp;&nbsp;&nbsp;";
+
+            this.maximisebutton = document.createElement("span");
+            this.maximisebutton.id = this.id + "_selbar_maximise";
+            this.maximisebutton.style.float = "right";
+            this.maximisebutton.style.backgroundColor = "#555555";
+            this.maximisebutton.style.cursor = "default";
+            this.maximisebutton.setAttribute("onmousedown", "maximise('" + this.id + "')");
+            this.maximisebutton.innerHTML = "&nbsp;&nbsp;&nbsp;O&nbsp;&nbsp;&nbsp;";
+
+            this.exitbutton = document.createElement("span");
+            this.exitbutton.id = this.id + "_selbar_exit";
+            this.exitbutton.style.float = "right";
+            this.exitbutton.style.backgroundColor = "#ff0000";
+            this.exitbutton.style.cursor = "default";
+            this.exitbutton.setAttribute("onmousedown", "exit('" + this.id + "')");
+            this.exitbutton.innerHTML = "&nbsp;&nbsp;&nbsp; X &nbsp;&nbsp;&nbsp;";
+
+            this.this.appendChild(this.titleobject);
+            this.this.appendChild(this.exitbutton);
+            this.this.appendChild(this.maximisebutton);
+            this.this.appendChild(this.minimisebutton);
+        }
+
+        createSimpleSelectBar() {
+            return
+        }
+    }
+
+    class Pos_Size {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    class Settings{
+      constructor(){
+        settingsSite = settingsSite.split("?/?").join("/");
+        this.window = new PWindow("Settings", textToFile(settingsSite), new Pos_Size(200, 200), new Pos_Size(300, 300), "#ffffff", "#000000");
+        document.body.appendChild(this.window.this);
+        pWindows[this.window.id] = this.window;
+        console.log(this.window.id);
+        setTimeout(function(that){
+          that.window.iframe.contentWindow.postMessage(IFrameCommunicator.buildMessage("mainpage","YourID",that.window.id), '*');
+        },10,this);
+      }
+    }
+
+
+
+    const resizeMode = {
+        UP: 1,
+        DOWN: 2,
+        LEFT: 3,
+        RIGHT: 4
+    }
+    let drag = false;
+    let dragobject = "";
+    let dragx = 0;
+    let resize = 0;
+    let resizeobject = "";
+    let cursor;
+    let pWindows = [];
+    let event;
+    document.getElementById("outerlay").innerHTML = "";
+    ////////////////////////////////////////////////////////////////////////////
+    //if mouse is released stop dragging the window
+    document.addEventListener("mouseup", (e) => {
+        drag = false;
+        document.getElementById("outerlay").innerHTML = "";
+        resize = 0;
+    });
+    document.addEventListener("touchend", (e) => {
+        drag = false;
+        document.getElementById("outerlay").innerHTML = "";
+        resize = 0;
+    });
+    //
+    document.getElementById("addPWindow").addEventListener("change", (e) => {
+        let files = document.getElementById("addPWindow").files;
+        if (files.lenght === 0) {
+            return;
+        }
+        if (files.lenght >= 2) {
+            return;
+        }
+        let file = files[0];
+        let pWND = new PWindow(file.name, file, new Pos_Size(200, 200), new Pos_Size(300, 300), "#ffffff", "#000000");
+        document.body.appendChild(pWND.this);
+        pWindows[pWND.id] = pWND;
+        pWND.this.contentWindow.postMessage(IFrameCommunicator.buildMessage("mainpage","YourID",pWND.id), '*');
+    });
+
+    class IFrameCommunicator{
+      static buildMessage(sender,part,data){
+        return sender + "?&?%?" + part + "?&?%?" + data;
+      }
+      static register = [];
+      static receive(e){
+        let message = e.data.split("?&?%?");
+        let senderId = message[0];
+        let part = message[1];
+        let data = message[2];
+        if(IFrameCommunicator.register[part] != undefined){
+          IFrameCommunicator.register[part](message);
+          return;
+        }
+        if(part == "consoleLog"){
+          console.log("["+senderId+"] " + data);
+          return;
+        }else if(part == "setBackgroundColor"){
+          if(settings.window.id != senderId){return;}
+          document.body.style.backgroundColor = data;
+          return;
+        }
+        console.warn("Got message unable to sort: " + "Received data: Sender:" + senderId + " Part:" + part + " Data:" + data);
+      }
+    }
+    IFrameCommunicator.register["getBackgroundColor"] = function(message){
+      if(pWindows[message[0]] == undefined){return;}
+      console.log(document.body.style.backgroundColor);
+      pWindows[message[0]].iframe.contentWindow.postMessage(IFrameCommunicator.buildMessage("mainpage","getBackgroundColor",document.body.style.backgroundColor), '*');
+    }
+    window.onmessage = IFrameCommunicator.receive;
+    function selbar_mousedown(id) {
+        drag = true;
+        document.getElementById("outerlay").innerHTML = "<div id=\"overlay\"></div>";
+        dragobject = id;
+        dragx = (parseInt(pWindows[id].this.style.left)) - cursor.clientX;
+    }
+    function resize_up(id) {
+        resize = 1;
+        resizeobject = id;
+        document.getElementById("outerlay").innerHTML = "<div id=\"overlay\"></div>";
+    }
+
+    function resize_down(id) {
+        resize = 3;
+        resizeobject = id;
+        document.getElementById("outerlay").innerHTML = "<div id=\"overlay\"></div>";
+    }
+
+    function resize_left(id) {
+        resize = 4;
+        resizeobject = id;
+        document.getElementById("outerlay").innerHTML = "<div id=\"overlay\"></div>";
+    }
+
+    function resize_right(id) {
+        resize = 2;
+        resizeobject = id;
+        document.getElementById("outerlay").innerHTML = "<div id=\"overlay\"></div>";
+    }
+
+    function maximise(id) {
+        if (pWindows[id].isMaxMinimized) {
+            pWindows[id].this.style.left = pWindows[id].oldXPos + "px";
+            pWindows[id].this.style.top = pWindows[id].oldYPos + "px";
+            resize_f(pWindows[id].oldXSize, pWindows[id].oldYSize, id);
+            pWindows[id].this.style.width = pWindows[id].oldXSize + "px";
+            pWindows[id].this.style.height = pWindows[id].oldYSize + "px";
+            document.getElementById(id + "_selbar").style.width = pWindows[id].oldXSize + "px";
+            pWindows[id].isMaxMinimized = false;
+        } else {
+            pWindows[id].oldXPos = parseInt(pWindows[id].this.style.left);
+            pWindows[id].oldYPos = parseInt(pWindows[id].this.style.top);
+            pWindows[id].oldXSize = parseInt(pWindows[id].this.style.width);
+            pWindows[id].oldYSize = parseInt(pWindows[id].this.style.height);
+            pWindows[id].this.style.left = 0 + "px";
+            pWindows[id].this.style.top = 20 + "px";
+            resize_f(document.documentElement.clientWidth, document.documentElement.clientHeight, id);
+            pWindows[id].isMaxMinimized = true;
+        }
+    }
+
+    function minimise(id) {
+        if (pWindows[id].isMaxMinimized) {
+            pWindows[id].this.style.left = pWindows[id].oldXPos + "px";
+            pWindows[id].this.style.top = pWindows[id].oldYPos + "px";
+            pWindows[id].this.style.width = pWindows[id].oldXSize + "px";
+            pWindows[id].this.style.height = pWindows[id].oldYSize + "px";
+            document.getElementById(id + "_selbar").style.width = pWindows[id].oldXSize + "px";
+            document.getElementById(id + "_tab").remove();
+            pWindows[id].this.style.visibility = "visible";
+            pWindows[id].isMaxMinimized = false;
+        } else {
+            pWindows[id].oldXPos = parseInt(pWindows[id].this.style.left);
+            pWindows[id].oldYPos = parseInt(pWindows[id].this.style.top);
+            pWindows[id].oldXSize = parseInt(pWindows[id].this.style.width);
+            pWindows[id].oldYSize = parseInt(pWindows[id].this.style.height);
+            pWindows[id].this.style.left = -1000000 + "px";
+            pWindows[id].this.style.top = -1000000 + "px";
+            pWindows[id].this.style.visibility = "hidden";
+            var newtab = document.createElement("span");
+            newtab.id = id + "_tab";
+            newtab.innerHTML = "&nbsp;&nbsp;&nbsp;" + pWindows[id].name + "&nbsp;&nbsp;&nbsp;";
+            newtab.style.backgroundColor = "#555555";
+            newtab.style.border = "line";
+            newtab.style.color = "#ffffff";
+            newtab.setAttribute("class", "unselectable");
+            newtab.setAttribute("onmousedown", "minimise('" + id + "')")
+            document.getElementById("tabs").appendChild(newtab);
+            pWindows[id].isMaxMinimized = true;
+        }
+    }
+
+    function exit(id) {
+        pWindows[id].this.remove();
+        pWindows[id] = null;
+    }
+
+    function resize_f(x, y, id) {
+        console.log("resize")
+        pWindows[id].this.style.width = x.toString() + "px";
+        pWindows[id].this.style.height = y.toString() + "px";
+        document.getElementById(id + "_selbar").style.width = x.toString() + "px";
+        document.getElementById(id + "_rightresize").style.left = (x - 2).toString() + "px";
+        document.getElementById(id + "_rightresize").style.height = y.toString() + "px";
+        document.getElementById(id + "_leftresize").style.height = y.toString() + "px";
+        document.getElementById(id + "_topresize").style.width = x.toString() + "px";
+        document.getElementById(id + "_bottomresize").style.width = x.toString() + "px";
+        document.getElementById(id + "_bottomresize").style.top = (y - 2).toString() + "px";
+        document.getElementById(id + "_iframe").style.height = (y - 24).toString() + "px";
+        document.getElementById(id + "_iframe").style.width = (x - 4).toString() + "px";
+    }
+
+    function textToFile(text){
+      let typeInput = "text/plain";
+      return new Blob([text],{type: typeInput});
+    }
+    function textToFile(text,typeInput){
+      return new Blob([text],{type: typeInput});
+    }
+    document.addEventListener("mousemove", (e) => {
+        cursor = e;
+    });
+    document.getElementById("outerlay").addEventListener("mousemove", (e) => {
+        cursor = e;
+        if (resize > 0) {
+            switch (resize) {
+                case 1:
+                    resize_f(parseInt(document.getElementById(resizeobject).style.width), parseInt(document.getElementById(resizeobject).style.height) + (cursor.movementY * -1), resizeobject);
+                    document.getElementById(resizeobject).style.top = (parseInt(document.getElementById(resizeobject).style.top) + (cursor.movementY)).toString() + "px";
+                    break;
+                case 3:
+                    resize_f(parseInt(document.getElementById(resizeobject).style.width), parseInt(document.getElementById(resizeobject).style.height) + cursor.movementY, resizeobject);
+                    break;
+                case 4:
+                    resize_f(parseInt(document.getElementById(resizeobject).style.width) + (cursor.movementX * -1), parseInt(document.getElementById(resizeobject).style.height), resizeobject);
+                    document.getElementById(resizeobject).style.left = (parseInt(document.getElementById(resizeobject).style.left) + (cursor.movementX)).toString() + "px";
+                    break;
+                case 2:
+                    resize_f(parseInt(document.getElementById(resizeobject).style.width) + cursor.movementX, parseInt(document.getElementById(resizeobject).style.height), resizeobject);
+                    break;
+            }
+        }
+        //cursor = e;
+        if (drag) {
+            var pwnd = pWindows[dragobject];
+            if (pwnd.isMaxMinimized) {
+                return;
+            }
+            document.getElementById(dragobject + "_selbar").style.cursor = "grabbing";
+            pwnd.this.style.left = (cursor.clientX + dragx).toString() + "px";
+            pwnd.this.style.top = (cursor.clientY - 5).toString() + "px";
+            if (parseInt(pwnd.this.style.top) <= 20) {
+                pwnd.this.style.top = "20px"
+            }
+        } else {
+            try {
+                document.getElementById(dragobject + "_selbar").style.cursor = "grab";
+            } catch {
+            }
+        }
+    });
+    let settingsSite = `
+    <!DOCTYPE html>
+    <html lang="en" dir="ltr">
+      <head>
+        <meta charset="utf-8">
+        <title>Settings</title>
+        <style>
+        body{
+          color: #ffffff;
+          background-color: #3a3a3a;
+        }
+        </style>
+      </head>
+      <body>
+        <h1> Welcome to the Settingspage </h1>
+        BackgroundColor: <input type="color" id="backgroundColorChanger" onchange="IFrameCommunicator.emit(iframeID,'setBackgroundColor',backgroundColorChanger.value);" value="#2a2a2a">
+        <!--<button onclick="IFrameCommunicator.emit(iframeID,'consoleLog','test123812937128371928371');">Test IFrameCommunicator</button>-->
+        <script type="text/javascript">
+        let iframeID = "";
+        class IFrameCommunicator{
+          static buildMessage(sender,part,data){
+            return sender + "?&?%?" + part + "?&?%?" + data;
+          }
+          static register = [];
+          static receive(e){
+            let message = e.data.split("?&?%?");
+            let senderId = message[0];
+            let part = message[1];
+            let data = message[2];
+            if(IFrameCommunicator.register[part] != undefined){
+              IFrameCommunicator.register[part](message);
+              return;
+            }
+            if(senderId != "mainpage"){return;}
+            if(part == "YourID"){
+              iframeID = data;
+              IFrameCommunicator.emit(iframeID,"consoleLog","Got ID!");
+              onload();
+              return;
+            }
+            IFrameCommunicator.emit(iframeID,"consoleLog","Received data: Sender:" + senderId + " Part:" + part + " Data:" + data);
+          }
+          static emit(page,part,data){
+            window.top.postMessage(IFrameCommunicator.buildMessage(page,part,data),"*");
+          }
+        }
+        window.onmessage = IFrameCommunicator.receive;
+        function onload(){
+          IFrameCommunicator.register["getBackgroundColor"] = function(message){
+            if(message[0] != "mainpage"){return;}
+            let data = message[2];
+            data = data.split("(")[1];
+            data = data.split(")").join("");
+            data = data.split(", ");
+            let str = "#";
+            str += numberToHex(data[0]);
+            str += numberToHex(data[1]);
+            str += numberToHex(data[2]);
+            console.log(str);
+            document.getElementById("backgroundColorChanger").value = str;
+          }
+          IFrameCommunicator.emit(iframeID,"getBackgroundColor","");
+        }
+        function numberToHex(number){
+          console.log(Number(number).toString(16));
+          if(Number(number).toString(16).length == 1){
+            return "0" + Number(number).toString(16);
+          }
+          return Number(number).toString(16);
+        }
+        <?/?script>
+      </body>
+    </html>
+    `
+</script>
+</body>
+</html>
